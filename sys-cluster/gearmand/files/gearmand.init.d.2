@@ -1,0 +1,71 @@
+#!/sbin/runscript
+
+PIDFILE="/var/run/gearmand/gearmand.pid"
+COMMAND="/usr/sbin/gearmand"
+LOGFILE="/var/log/gearmand/gearmand.log"
+
+depend() {
+    use localmount
+
+    case $PERSISTENT in
+        memcache)
+            use memcache
+            ;;
+        postgre)
+            use postgresql
+            ;;
+        *)
+            ;;
+    esac
+}
+
+start() {
+    case ${PERSISTENT:-none} in
+        memcache)
+            [ ${PERSISTENT_SERVERLIST} ] && GEARMAND_PARAMS="${GEARMAND_PARAMS} -q libmemcached --libmemcached-servers=${PERSISTENT_SERVERLIST}"
+            ;;
+        postgre)
+            GEARMAND_PARAMS="${GEARMAND_PARAMS} --libpq-conninfo='"
+            [ ${PERSISTENT_HOST}   ] && GEARMAND_PARAMS="${GEARMAND_PARAMS},hostaddr=${PERSISTENT_HOST}"
+            [ ${PERSISTENT_USER}   ] && GEARMAND_PARAMS="${GEARMAND_PARAMS},user=${PERSISTENT_USER}"
+            [ ${PERSISTENT_PASS}   ] && GEARMAND_PARAMS="${GEARMAND_PARAMS},password=${PERSISTENT_PASS}"
+            [ ${PERSISTENT_DB}     ] && GEARMAND_PARAMS="${GEARMAND_PARAMS},dbname=${PERSISTENT_DB}"
+            [ ${PERSISTENT_PORT}   ] && GEARMAND_PARAMS="${GEARMAND_PARAMS},port=${PERSISTENT_PORT}"
+            [ ${PERSISTENT_SOCKET} ] && ewarn "Libpq doesn't recognise 'socket' parameter. If no host is set, it automatically falls back to a socket."
+            GEARMAND_PARAMS="${GEARMAND_PARAMS}'"
+            [ ${PERSISTENT_TABLE}   ] && GEARMAND_PARAMS="${GEARMAND_PARAMS} --libpq-table=${PERSISTENT_TABLE}"
+            ;;
+        tokyocabinet)
+            GEARMAND_PARAMS="${GEARMAND_PARAMS}' -q libtokyocabinet --libtokyocabinet-file=${PERSISTENT_FILE}"
+            ;;
+        sqlite)
+            GEARMAND_PARAMS="${GEARMAND_PARAMS} -q libsqlite3 --libsqlite3-db=${PERSISTENT_FILE}"
+            ;;
+        none)
+            ;;
+        *)
+            eerror "Wrong persistent queue store setting in /etc/conf.d/gearmand."
+            return 1
+        ;;
+    esac
+
+    checkpath -d -m 0755 -o gearmand:nogroup /var/run/gearmand /var/log/gearmand
+
+    ebegin "Starting ${SVCNAME}"
+        start-stop-daemon --pidfile ${PIDFILE} --start \
+        --exec ${COMMAND} -- --pid-file=${PIDFILE} \
+        --user=gearmand --daemon \
+        --log-file=${LOGFILE} ${GEARMAND_PARAMS}
+    eend $?
+}
+
+stop() {
+
+    ebegin "Stopping ${SVCNAME}"
+    start-stop-daemon --stop --exec ${COMMAND} \
+        --pidfile ${PIDFILE}
+    res=$?
+
+ eend $res
+}
+

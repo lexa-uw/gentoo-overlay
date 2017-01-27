@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repositories encoding="UTF-8" version="1.1">
+  <repo priority="50" quality="experimental" status="unofficial">
+    <name>lexa-uw</name>
+    <description>lexa-uw overlay</description>
+    <homepage>https://github.com/lexa-uw/gentoo-overlay</homepage>
+    <owner>
+      <email>odin450@gmail.com</email>
+    </owner>
+  </repo>
+</repositories>

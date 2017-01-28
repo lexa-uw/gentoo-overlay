@@ -2,7 +2,7 @@
 ## Layman usage
 ```bash
 # install
-layman -a lexa-uw -o https://raw.githubusercontent.com/lexa-uw/gentoo-overlay/master/layman.xml
+layman -o https://raw.githubusercontent.com/lexa-uw/gentoo-overlay/master/layman.xml -f -a lexa-uw
 # update
 layman -s lexa-uw
 ```
